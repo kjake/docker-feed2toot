@@ -1,0 +1,8 @@
+#!/usr/bin/with-contenv bash
+# shellcheck shell=bash
+
+if [[ -d /config ]]; then
+    cd /config || exit 1
+fi
+
+exec /lsiopy/bin/feed2toot-register-app "$@"

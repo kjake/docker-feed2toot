@@ -1,0 +1,99 @@
+name: Check LSIO Base Image
+
+on:
+  schedule:
+    - cron: "15 7 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout the code
+        uses: actions/checkout@v4
+
+      - name: Check pinned LSIO base image
+        id: check
+        run: python3 .github/scripts/check_lsio_baseimage.py
+
+      - name: Create or update maintenance issue
+        if: steps.check.outputs.update_available == 'true'
+        uses: actions/github-script@v7
+        env:
+          ISSUE_TITLE: "Maintenance: update LinuxServer baseimage-alpine pin"
+          CURRENT_VERSION: ${{ steps.check.outputs.current_version }}
+          LATEST_VERSION: ${{ steps.check.outputs.latest_version }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const title = process.env.ISSUE_TITLE;
+            const body = [
+              "A newer LinuxServer Alpine base-image series is available.",
+              "",
+              `Current pin: \`${process.env.CURRENT_VERSION}\``,
+              `Latest detected series: \`${process.env.LATEST_VERSION}\``,
+              "",
+              "Files to update:",
+              "- `Dockerfile`",
+              "- `Dockerfile.aarch64`",
+            ].join("\n");
+
+            const { owner, repo } = context.repo;
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner,
+              repo,
+              state: "open",
+              per_page: 100,
+            });
+
+            const existing = issues.find((issue) => issue.title === title);
+
+            if (existing) {
+              await github.rest.issues.update({
+                owner,
+                repo,
+                issue_number: existing.number,
+                body,
+              });
+            } else {
+              await github.rest.issues.create({
+                owner,
+                repo,
+                title,
+                body,
+              });
+            }
+
+      - name: Close maintenance issue when up to date
+        if: steps.check.outputs.update_available != 'true'
+        uses: actions/github-script@v7
+        env:
+          ISSUE_TITLE: "Maintenance: update LinuxServer baseimage-alpine pin"
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const title = process.env.ISSUE_TITLE;
+            const { owner, repo } = context.repo;
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner,
+              repo,
+              state: "open",
+              per_page: 100,
+            });
+
+            const existing = issues.find((issue) => issue.title === title);
+            if (!existing) {
+              return;
+            }
+
+            await github.rest.issues.update({
+              owner,
+              repo,
+              issue_number: existing.number,
+              state: "closed",
+            });
