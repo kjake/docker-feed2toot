@@ -15,7 +15,7 @@ jobs:
 
     steps:
       - name: Checkout the code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Check pinned LSIO base image
         id: check
@@ -23,7 +23,7 @@ jobs:
 
       - name: Create or update maintenance issue
         if: steps.check.outputs.update_available == 'true'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         env:
           ISSUE_TITLE: "Maintenance: update LinuxServer baseimage-alpine pin"
           CURRENT_VERSION: ${{ steps.check.outputs.current_version }}
@@ -71,7 +71,7 @@ jobs:
 
       - name: Close maintenance issue when up to date
         if: steps.check.outputs.update_available != 'true'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         env:
           ISSUE_TITLE: "Maintenance: update LinuxServer baseimage-alpine pin"
         with:

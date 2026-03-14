@@ -10,7 +10,6 @@ Explain the problem being solved or the reason for the change.
 
 - [ ] `docker buildx build --platform linux/amd64 -f Dockerfile -t docker-feed2toot:test-amd64 --load .`
 - [ ] `docker buildx build --platform linux/arm64 -f Dockerfile.aarch64 -t docker-feed2toot:test-arm64 .`
-- [ ] `package_versions.txt` regenerated if the base image or installed package set changed
 - [ ] Runtime behavior checked if startup/config logic changed
 
 ## Notes

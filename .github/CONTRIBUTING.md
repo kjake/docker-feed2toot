@@ -7,7 +7,7 @@ This repository is a community-maintained fork of the archived `linuxserver/dock
 - Keep `Dockerfile` and `Dockerfile.aarch64` aligned when a change applies to both architectures.
 - Update `README.md` when runtime behavior, setup steps, or configuration paths change.
 - If you change startup scripts under `root/`, test container startup and first-run config creation.
-- If you change the base image, apk package set, or Python package set, regenerate `package_versions.txt` from a real build before merging. Do not hand-edit it.
+- Container security scanning and SBOM submission run in GitHub Actions after published-image builds. Use those results for dependency and vulnerability visibility instead of maintaining package inventories by hand.
 
 ## Local testing
 
