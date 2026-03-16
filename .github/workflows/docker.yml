@@ -96,8 +96,11 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       actions: read
-      contents: write
+      contents: read
       security-events: write
+    env:
+      GRYPE_VERSION: v0.107.1
+      SYFT_VERSION: v1.42.2
 
     steps:
       - name: Checkout the code
@@ -109,26 +112,32 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Generate and submit SBOM
-        uses: anchore/sbom-action@v0
+      - name: Install Syft
+        run: |
+          mkdir -p "$RUNNER_TEMP/bin"
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b "$RUNNER_TEMP/bin" "$SYFT_VERSION"
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
+      - name: Install Grype
+        run: |
+          mkdir -p "$RUNNER_TEMP/bin"
+          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b "$RUNNER_TEMP/bin" "$GRYPE_VERSION"
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
+      - name: Generate SBOM
+        run: syft "${IMAGE_NAME}:latest" -o spdx-json=./image.spdx.json
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v6
         with:
-          image: ${{ env.IMAGE_NAME }}:latest
-          artifact-name: image.spdx.json
-          format: spdx-json
-          dependency-snapshot: true
-          upload-artifact: true
+          name: image-spdx-json
+          path: image.spdx.json
 
       - name: Scan published image
-        id: scan
-        uses: anchore/scan-action@v7
-        with:
-          image: ${{ env.IMAGE_NAME }}:latest
-          fail-build: false
-          output-format: sarif
-          output-file: grype-results.sarif
+        run: grype "${IMAGE_NAME}:latest" -o sarif=./grype-results.sarif
 
       - name: Upload SARIF to GitHub Security
         uses: github/codeql-action/upload-sarif@v4
         with:
-          sarif_file: ${{ steps.scan.outputs.sarif }}
+          sarif_file: ./grype-results.sarif
           category: anchore-container
