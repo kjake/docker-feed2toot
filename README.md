@@ -2,11 +2,13 @@
 
 Independent community-maintained fork of the archived `linuxserver/docker-feed2toot` container.
 
-This fork keeps the original container model intact:
+This fork keeps the original container behavior:
 
 - cron-driven `feed2toot` execution
 - persistent `/config` volume
-- s6-based runtime on top of the actively maintained `ghcr.io/linuxserver/baseimage-alpine` base image
+- `PUID`, `PGID` and `TZ` environment settings
+
+The runtime is built on the Chainguard [`cgr.dev/chainguard/wolfi-base`](https://images.chainguard.dev/directory/image/wolfi-base/overview) image. `supercronic` schedules the feed run and `su-exec` drops privileges to the configured `PUID`/`PGID`.
 
 The packaged application has been switched from the abandoned `feed2toot` release to [`feed2toot-oauth`](https://github.com/theelous3/feed2toot-oauth), which supports the current OAuth-based registration flow for Mastodon-compatible servers.
 
@@ -14,11 +16,12 @@ The packaged application has been switched from the abandoned `feed2toot` releas
 
 - The original container repo was created and maintained by LinuxServer.io.
 - This fork is maintained independently and is not an official LinuxServer.io image.
-- The fork continues to use the LinuxServer base image because that dependency is still maintained separately.
 
 ## What changed
 
 - The image now installs `feed2toot-oauth` from PyPI.
+- The base image moved from LinuxServer's Alpine image to Chainguard's Wolfi base. Wolfi packages are installed unpinned so every rebuild picks up the latest fixes; only Python is held to its major version through the `python-3` package.
+- The s6-overlay init system is replaced by a small entrypoint script. The LinuxServer deprecation banner is gone.
 - New default configs expect credentials under `/config/creds/`.
 - `/lsiopy/bin/register_feed2toot_app` is preserved as a compatibility wrapper and now runs the new `feed2toot-register-app` helper from `/config`.
 
@@ -112,4 +115,4 @@ several_words_hashtags_list=/config/hashtags.txt
 - Existing persisted configs are not overwritten.
 - If you are migrating from the original archived image, re-registering OAuth credentials is recommended.
 - The upstream app documentation lives at <https://github.com/theelous3/feed2toot-oauth>.
-- A scheduled GitHub Action opens or updates a maintenance issue when LinuxServer publishes a newer Alpine base-image series.
+- A scheduled GitHub Action rebuilds the image weekly without the layer cache, so the published image tracks the latest Wolfi base and package updates.

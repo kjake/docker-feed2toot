@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM ghcr.io/linuxserver/baseimage-alpine:3.23
+FROM cgr.dev/chainguard/wolfi-base:latest
 
 # set version label
 ARG BUILD_DATE
@@ -9,31 +9,35 @@ ARG FEED2TOOT_VERSION
 LABEL build_version="docker-feed2toot version:- ${VERSION} Build-date:- ${BUILD_DATE}"
 LABEL maintainer="community"
 
-# environment settings
+# environment settings
 ENV PYTHONIOENCODING=utf-8 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    TZ=Etc/UTC
 
+# packages track the latest Wolfi builds; only python is held to its major version
 RUN \
   echo "**** install packages ****" && \
-  apk add  -U --update --no-cache \
-    python3 && \
+  apk add -U --no-cache \
+    python-3 \
+    su-exec \
+    supercronic \
+    tzdata && \
   echo "**** install feed2toot-oauth ****" && \
-  if [ -z ${FEED2TOOT_VERSION+x} ]; then \
-    FEED2TOOT_VERSION=$(curl -sL https://pypi.org/pypi/feed2toot-oauth/json | jq -r '.info.version'); \
-  fi && \
   python3 -m venv /lsiopy && \
-  /lsiopy/bin/pip install -U --no-cache-dir \
-    pip \
-    wheel && \
-  /lsiopy/bin/pip install -U --no-cache-dir \
-    feed2toot-oauth=="${FEED2TOOT_VERSION}" && \
+  /lsiopy/bin/pip install --no-cache-dir \
+    "feed2toot-oauth${FEED2TOOT_VERSION:+==${FEED2TOOT_VERSION}}" && \
+  echo "**** remove pip from the runtime venv ****" && \
+  /lsiopy/bin/pip uninstall -y pip && \
   echo "**** cleanup ****" && \
   rm -rf \
     /tmp/* \
-    $HOME/.cache
+    /root/.cache
 
-# add local files
+# add local files
 COPY root/ /
 
 # ports and volumes
 VOLUME /config
+
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+CMD ["supercronic", "-passthrough-logs", "/etc/crontabs/abc"]
