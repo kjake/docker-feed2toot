@@ -14,7 +14,7 @@ This repository is maintained on a rolling basis. Security fixes are currently p
 
 This policy covers vulnerabilities in this repository and the published container image, including:
 
-- `Dockerfile` and `Dockerfile.aarch64`
+- `Dockerfile`
 - startup scripts and runtime logic under `root/`
 - default configuration shipped with the image
 - GitHub Actions and release automation in this repository
