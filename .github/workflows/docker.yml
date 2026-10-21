@@ -69,6 +69,8 @@ jobs:
         run: |
           set -eux
           config="$(mktemp -d)"
+          # the entrypoint chowns /config to PUID:PGID; keep it traversable for the runner's checks
+          chmod 755 "$config"
           docker run --rm --platform "$PLATFORM" \
             -e PUID=1000 -e PGID=1000 \
             -v "$config:/config" \
